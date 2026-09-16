@@ -97,22 +97,24 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             processed_table = []
             if isinstance(table_data, list):
-                for idx, item in enumerate(table_data, start=1):
+                for item in table_data:
+                    if not isinstance(item, dict):
+                        continue
                     processed_table.append(
                         {
-                            "rank": idx,
+                            "rank": len(processed_table) + 1,
                             "team_id": item.get("teamInfoId"),
-                            "team_name": item.get("teamName"),
-                            "short_name": item.get("shortName"),
-                            "team_icon_url": item.get("teamIconUrl"),
-                            "points": item.get("points"),
-                            "matches": item.get("matches"),
-                            "won": item.get("won"),
-                            "draw": item.get("draw"),
-                            "lost": item.get("lost"),
-                            "goals": item.get("goals"),
-                            "opponent_goals": item.get("opponentGoals"),
-                            "goal_diff": item.get("goalDiff"),
+                            "team_name": item.get("teamName") or "",
+                            "short_name": item.get("shortName") or item.get("teamName") or "",
+                            "team_icon_url": item.get("teamIconUrl") or "",
+                            "points": item.get("points") or 0,
+                            "matches": item.get("matches") or 0,
+                            "won": item.get("won") or 0,
+                            "draw": item.get("draw") or 0,
+                            "lost": item.get("lost") or 0,
+                            "goals": item.get("goals") or 0,
+                            "opponent_goals": item.get("opponentGoals") or 0,
+                            "goal_diff": item.get("goalDiff") or 0,
                         }
                     )
 
@@ -143,29 +145,45 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             team_icon = None
 
             for m in matches:
-                t1 = m.get("team1", {})
-                t2 = m.get("team2", {})
+                if not isinstance(m, dict):
+                    continue
+
+                t1 = m.get("team1") or {}
+                t2 = m.get("team2") or {}
+
+                if not isinstance(t1, dict):
+                    t1 = {}
+                if not isinstance(t2, dict):
+                    t2 = {}
+
+                t1_id = t1.get("teamId")
+                t1_name = t1.get("teamName") or ""
+                t1_short = t1.get("shortName") or ""
+
+                t2_id = t2.get("teamId")
+                t2_name = t2.get("teamName") or ""
+                t2_short = t2.get("shortName") or ""
 
                 is_t1 = (
-                    str(t1.get("teamId")) == str(team_identifier)
-                    or team_identifier.lower() in str(t1.get("teamName", "")).lower()
-                    or team_identifier.lower() in str(t1.get("shortName", "")).lower()
+                    (t1_id is not None and str(t1_id) == str(team_identifier))
+                    or (t1_name and team_identifier.lower() in t1_name.lower())
+                    or (t1_short and team_identifier.lower() in t1_short.lower())
                 )
                 is_t2 = (
-                    str(t2.get("teamId")) == str(team_identifier)
-                    or team_identifier.lower() in str(t2.get("teamName", "")).lower()
-                    or team_identifier.lower() in str(t2.get("shortName", "")).lower()
+                    (t2_id is not None and str(t2_id) == str(team_identifier))
+                    or (t2_name and team_identifier.lower() in t2_name.lower())
+                    or (t2_short and team_identifier.lower() in t2_short.lower())
                 )
 
                 if is_t1 or is_t2:
                     team_matches.append(m)
                     if is_t1:
-                        matched_team_name = t1.get("teamName", team_identifier)
-                        matched_team_id = t1.get("teamId")
+                        matched_team_name = t1_name or team_identifier
+                        matched_team_id = t1_id
                         team_icon = t1.get("teamIconUrl")
                     elif is_t2:
-                        matched_team_name = t2.get("teamName", team_identifier)
-                        matched_team_id = t2.get("teamId")
+                        matched_team_name = t2_name or team_identifier
+                        matched_team_id = t2_id
                         team_icon = t2.get("teamIconUrl")
 
             # Parse and categorize matches: finished (last), current (live), next (upcoming)
@@ -176,83 +194,110 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Sort matches by date
             sorted_matches = sorted(
                 team_matches,
-                key=lambda x: parse_match_date(x.get("matchDateTime"))
+                key=lambda x: parse_match_date(x.get("matchDateTime") if isinstance(x, dict) else None)
                 or datetime.min.replace(tzinfo=timezone.utc),
             )
 
             for m in sorted_matches:
+                if not isinstance(m, dict):
+                    continue
+
                 m_date = parse_match_date(m.get("matchDateTime"))
-                is_finished = m.get("matchIsFinished", False)
+                is_finished = bool(m.get("matchIsFinished"))
 
                 # Determine if match is currently live
-                # OpenLigaDB marks matches as not finished, and if current time is around kick-off (+2h window)
                 is_live = False
                 if m_date and not is_finished:
-                    # Live if started within last 2.5 hours or currently happening
                     time_diff = (now - m_date).total_seconds()
-                    if -900 <= time_diff <= 9000:  # 15 mins before kick-off to 2.5 hours after
+                    if -900 <= time_diff <= 9000:
                         is_live = True
                         has_active_live_match = True
 
-                t1 = m.get("team1", {})
-                t2 = m.get("team2", {})
+                t1 = m.get("team1") or {}
+                t2 = m.get("team2") or {}
+                if not isinstance(t1, dict):
+                    t1 = {}
+                if not isinstance(t2, dict):
+                    t2 = {}
+
+                group = m.get("group") or {}
+                if not isinstance(group, dict):
+                    group = {}
+
+                location = m.get("location") or {}
+                if not isinstance(location, dict):
+                    location = {}
+
                 is_home = (
-                    matched_team_id == t1.get("teamId")
+                    (matched_team_id is not None and matched_team_id == t1.get("teamId"))
                     or matched_team_name == t1.get("teamName")
                 )
                 opponent = t2 if is_home else t1
 
                 # Extract latest score
-                match_results = m.get("matchResults", [])
+                match_results = m.get("matchResults") or []
+                if not isinstance(match_results, list):
+                    match_results = []
+
+                valid_results = [r for r in match_results if isinstance(r, dict)]
                 score_t1 = 0
                 score_t2 = 0
-                if match_results:
-                    # Get highest resultOrderID (final result)
-                    final_res = max(match_results, key=lambda r: r.get("resultOrderID", 0))
-                    score_t1 = final_res.get("pointsTeam1", 0)
-                    score_t2 = final_res.get("pointsTeam2", 0)
+                if valid_results:
+                    final_res = max(valid_results, key=lambda r: r.get("resultOrderID") or 0)
+                    score_t1 = final_res.get("pointsTeam1") or 0
+                    score_t2 = final_res.get("pointsTeam2") or 0
 
-                goals_info = [
-                    {
-                        "minute": g.get("matchMinute"),
-                        "player": g.get("goalGetterName"),
-                        "score": f"{g.get('scoreTeam1')}:{g.get('scoreTeam2')}",
-                        "is_penalty": g.get("isPenalty", False),
-                        "is_own_goal": g.get("isOwnGoal", False),
-                    }
-                    for g in m.get("goals", [])
-                ]
+                goals = m.get("goals") or []
+                if not isinstance(goals, list):
+                    goals = []
+
+                goals_info = []
+                for g in goals:
+                    if isinstance(g, dict):
+                        goals_info.append(
+                            {
+                                "minute": g.get("matchMinute"),
+                                "player": g.get("goalGetterName") or "",
+                                "score": f"{g.get('scoreTeam1', 0)}:{g.get('scoreTeam2', 0)}",
+                                "is_penalty": bool(g.get("isPenalty")),
+                                "is_own_goal": bool(g.get("isOwnGoal")),
+                            }
+                        )
+
+                stadium = location.get("locationStadium") or ""
+                city = location.get("locationCity") or ""
+                loc_str = ", ".join(filter(None, [stadium, city]))
 
                 match_dict = {
                     "match_id": m.get("matchID"),
                     "date": m.get("matchDateTime"),
-                    "group": m.get("group", {}).get("groupName"),
+                    "group": group.get("groupName") or "",
                     "is_home": is_home,
-                    "opponent_name": opponent.get("teamName"),
-                    "opponent_short_name": opponent.get("shortName"),
-                    "opponent_icon": opponent.get("teamIconUrl"),
+                    "opponent_name": opponent.get("teamName") or "",
+                    "opponent_short_name": opponent.get("shortName") or "",
+                    "opponent_icon": opponent.get("teamIconUrl") or "",
                     "score_home": score_t1,
                     "score_away": score_t2,
                     "score_team": score_t1 if is_home else score_t2,
                     "score_opponent": score_t2 if is_home else score_t1,
-                    "score_str": f"{score_t1} - {score_t2}" if (match_results or is_finished or is_live) else "-:-",
+                    "score_str": f"{score_t1} - {score_t2}" if (valid_results or is_finished or is_live) else "-:-",
                     "is_finished": is_finished,
                     "is_live": is_live,
                     "goals": goals_info,
-                    "location": f"{m.get('location', {}).get('locationStadium', '')}, {m.get('location', {}).get('locationCity', '')}".strip(", "),
+                    "location": loc_str,
                 }
 
                 # Check for Goal & Match Start/End Events
                 match_id = m.get("matchID")
                 if is_live:
                     current_match = match_dict
-                    if match_id not in self._previous_live_matches:
+                    if match_id and match_id not in self._previous_live_matches:
                         self._previous_live_matches.add(match_id)
                         self.hass.bus.async_fire(
                             EVENT_OPENLIGADB_MATCH_START,
                             {
                                 "team": matched_team_name,
-                                "opponent": opponent.get("teamName"),
+                                "opponent": opponent.get("teamName") or "",
                                 "match_id": match_id,
                             },
                         )
@@ -267,7 +312,7 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             EVENT_OPENLIGADB_GOAL,
                             {
                                 "team": matched_team_name,
-                                "opponent": opponent.get("teamName"),
+                                "opponent": opponent.get("teamName") or "",
                                 "score": match_dict["score_str"],
                                 "goal_getter": latest_goal.get("player"),
                                 "minute": latest_goal.get("minute"),
@@ -275,13 +320,13 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             },
                         )
                 elif is_finished:
-                    if match_id in self._previous_live_matches:
+                    if match_id and match_id in self._previous_live_matches:
                         self._previous_live_matches.remove(match_id)
                         self.hass.bus.async_fire(
                             EVENT_OPENLIGADB_MATCH_END,
                             {
                                 "team": matched_team_name,
-                                "opponent": opponent.get("teamName"),
+                                "opponent": opponent.get("teamName") or "",
                                 "score": match_dict["score_str"],
                                 "match_id": match_id,
                             },
