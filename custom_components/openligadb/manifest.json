@@ -1,0 +1,10 @@
+{
+  "domain": "openligadb",
+  "name": "OpenLigaDB",
+  "codeowners": ["@openligadb"],
+  "config_flow": true,
+  "documentation": "https://github.com/custom-components/ha-openligadb",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/custom-components/ha-openligadb/issues",
+  "version": "1.0.0"
+}

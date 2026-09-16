@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "OpenLigaDB Konfigurator",
+        "description": "Wähle aus, welche Art von Sensor du anlegen möchtest.",
+        "data": {
+          "entry_type": "Sensor-Typ"
+        }
+      },
+      "league": {
+        "title": "Liga-Tabelle konfigurieren",
+        "description": "Wähle die Liga und die Saison aus.",
+        "data": {
+          "league_shortcut": "Liga-Kürzel",
+          "season": "Saison (z.B. 2024)"
+        }
+      },
+      "team_league_select": {
+        "title": "Team-Sensor: Liga-Auswahl",
+        "description": "Wähle die Liga deines Teams.",
+        "data": {
+          "league_shortcut": "Liga-Kürzel",
+          "season": "Saison (z.B. 2024)"
+        }
+      },
+      "team_select": {
+        "title": "Team auswählen",
+        "description": "Wähle dein Team aus der Liste oder gib den Namen ein.",
+        "data": {
+          "team_name": "Team-Name"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieser Sensor ist bereits konfiguriert."
+    }
+  }
+}
