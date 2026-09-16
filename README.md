@@ -35,7 +35,7 @@ Eine leistungsstarke Home Assistant Custom Integration zur Einbindung von Spield
 1. Öffne **HACS** in deinem Home Assistant Dashboard.
 2. Klicke oben rechts auf die 3 Punkte -> **Benutzerdefinierte Repositories** (*Custom repositories*).
 3. Füge die URL dieses GitHub-Repositories ein:
-   - **Repository**: `https://github.com/DEIN_USERNAME/ha-openligadb`
+   - **Repository**: `https://github.com/Belgadon/HA-OpenLigaDB`
    - **Kategorie**: `Integration`
 4. Klicke auf **Hinzufügen** und installiere die Integration **OpenLigaDB**.
 5. Starte Home Assistant neu.
