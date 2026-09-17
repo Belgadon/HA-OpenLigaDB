@@ -56,7 +56,7 @@ A powerful Home Assistant Custom Integration for integrating match data, live sc
 
 ---
 
-## 🖼️ Lovelace Dashboard HTML Cards
+## 🖼️ Lovelace Dashboard Mardown Cards
 
 ### 1. Match Card with Crests, Scores & Goal Scorers / Cards
 
@@ -65,121 +65,93 @@ Add a **Markdown Card** in your dashboard and paste this code:
 ```yaml
 type: markdown
 title: "⚽ Matchday Card"
-content: >
-  {% set team_sensor = 'sensor.openligadb_bayern' %}
-  {% set match = state_attr(team_sensor, 'current_match') or state_attr(team_sensor, 'next_match') or state_attr(team_sensor, 'last_match') %}
+content: >-
+  {% set team_sensor = 'sensor.openligadb_fortuna_dusseldorf' -%}
 
-  {% if match %}
-  <div style="font-family: var(--primary-font-family, sans-serif); background: var(--ha-card-background, var(--card-background-color, #1e1e24)); border-radius: 12px; padding: 16px; color: var(--primary-text-color, #fff); box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-    
-    <!-- Matchday Header -->
-    <div style="text-align: center; font-size: 11px; font-weight: 700; opacity: 0.7; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 12px;">
-      {{ match.group or 'Matchday' }}
-    </div>
+  {% set match = state_attr(team_sensor, 'current_match') or
+  state_attr(team_sensor, 'next_match') or state_attr(team_sensor, 'last_match')
+  -%}
 
-    <!-- Match Header: Home (Left) | Score (Center) | Away (Right) -->
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-      
-      <!-- Home Team (Left) -->
-      <div style="flex: 1; text-align: center;">
-        <img src="{{ match.home_team_icon }}" style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"><br>
-        <span style="font-weight: 700; font-size: 14px; display: block; margin-top: 6px; line-height: 1.2;">{{ match.home_team_name }}</span>
-      </div>
+  {% if match -%}
 
-      <!-- Center: Score / Time -->
-      <div style="text-align: center; min-width: 100px;">
-        {% if match.is_live %}
-          <div style="display: inline-block; background: #e53935; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; margin-bottom: 4px;">🔴 LIVE {{ match.minute or '' }}</div>
-          <div style="font-size: 26px; font-weight: 900; letter-spacing: 2px;">{{ match.score_home }} : {{ match.score_away }}</div>
-        {% elif match.is_finished %}
-          <div style="display: inline-block; background: rgba(255,255,255,0.15); color: #ccc; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px;">FT</div>
-          <div style="font-size: 26px; font-weight: 900; letter-spacing: 2px;">{{ match.score_home }} : {{ match.score_away }}</div>
-        {% else %}
-          <div style="font-size: 13px; font-weight: 700; color: var(--primary-color, #03a9f4);">{{ as_timestamp(match.date) | timestamp_custom('%a. %d.%m.') }}</div>
-          <div style="font-size: 18px; font-weight: 800; margin: 2px 0;">{{ as_timestamp(match.date) | timestamp_custom('%H:%M') }}</div>
-          <div style="font-size: 10px; opacity: 0.7;">{{ match.location }}</div>
-        {% endif %}
-      </div>
 
-      <!-- Away Team (Right) -->
-      <div style="flex: 1; text-align: center;">
-        <img src="{{ match.away_team_icon }}" style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"><br>
-        <span style="font-weight: 700; font-size: 14px; display: block; margin-top: 6px; line-height: 1.2;">{{ match.away_team_name }}</span>
-      </div>
+  {% set ns_home = namespace(events=[]) -%}
 
-    </div>
+  {% for goal in match.home_goals -%}
+    {% set ns_home.events = ns_home.events + ['⚽ **' ~ ('Goal' if goal.player == '' else goal.player) ~ '** (' ~ goal.minute ~ '\'' ~ (', Pen.' if goal.is_penalty else '') ~ (', OG' if goal.is_own_goal else '') ~ ')'] -%}
+  {% endfor -%}
 
-    <!-- Divider -->
-    <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 14px 0 10px 0;">
+  {% for card in match.home_cards -%}
+    {% set ns_home.events = ns_home.events + [('🟨' if card.card_type == 'yellow' else '🟥') ~ ' **' ~ ('Card' if card.player == '' else card.player) ~ '** (' ~ card.minute ~ '\')'] -%}
+  {% endfor -%}
 
-    <!-- Match Events: Goal Scorers & Cards -->
-    <div style="display: flex; justify-content: space-between; font-size: 11px; gap: 12px; line-height: 1.5;">
-      
-      <!-- Home Events (Left-aligned) -->
-      <div style="flex: 1; text-align: left;">
-        {% for goal in match.home_goals %}
-          <div>⚽ <b>{{ goal.player }}</b> ({{ goal.minute }}'{% if goal.is_penalty %}, Pen.{% endif %}{% if goal.is_own_goal %}, OG{% endif %})</div>
-        {% endfor %}
-        {% for card in match.home_cards %}
-          <div>{{ '🟨' if card.card_type == 'yellow' else '🟥' }} <b>{{ card.player }}</b> ({{ card.minute }}')</div>
-        {% endfor %}
-      </div>
+  {% set home_events_str = ns_home.events | join('<br>') -%}
 
-      <!-- Away Events (Right-aligned) -->
-      <div style="flex: 1; text-align: right;">
-        {% for goal in match.away_goals %}
-          <div>({{ goal.minute }}'{% if goal.is_penalty %}, Pen.{% endif %}{% if goal.is_own_goal %}, OG{% endif %}) <b>{{ goal.player }}</b> ⚽</div>
-        {% endfor %}
-        {% for card in match.away_cards %}
-          <div>({{ card.minute }}') <b>{{ card.player }}</b> {{ '🟨' if card.card_type == 'yellow' else '🟥' }}</div>
-        {% endfor %}
-      </div>
 
-    </div>
+  {% set ns_away = namespace(events=[]) -%}
 
-  </div>
-  {% else %}
-    <p>No match data available.</p>
-  {% endif %}
+  {% for goal in match.away_goals -%}
+    {% set ns_away.events = ns_away.events + ['(' ~ goal.minute ~ '\'' ~ (', Pen.' if goal.is_penalty else '') ~ (', OG' if goal.is_own_goal else '') ~ ') **' ~ ('Goal' if goal.player == '' else goal.player) ~ '** ⚽'] -%}
+  {% endfor -%}
+
+  {% for card in match.away_cards -%}
+    {% set ns_away.events = ns_away.events + ['(' ~ card.minute ~ '\') **' ~ ('Card' if card.player == '' else card.player) ~ '** ' ~ ('🟨' if card.card_type == 'yellow' else '🟥')] -%}
+  {% endfor -%}
+
+  {% set away_events_str = ns_away.events | join('<br>') -%}
+
+
+  | | **{{ match.group or 'Matchday' }}** | |
+
+  |:---|:---:|---:|
+
+  | <img src="{{ match.home_team_icon }}" width="48" height="48"> | {% if
+  match.is_live %}🔴 **LIVE {{ match.minute or '' }}**{% elif match.is_finished
+  %}**FT**{% else %}**{{ as_timestamp(match.date) | timestamp_custom('%a.
+  %d.%m.') }}**{% endif %} | <img src="{{ match.away_team_icon }}" width="48"
+  height="48"> |
+
+  | **{{ match.home_team_name }}** | {% if match.is_live or match.is_finished
+  %}**{{ match.score_home }} : {{ match.score_away }}**{% else %}**{{
+  as_timestamp(match.date) | timestamp_custom('%H:%M') }}**<br>_{{
+  match.location }}_{% endif %} | **{{ match.away_team_name }}** |
+
+  {% if home_events_str or away_events_str -%}
+
+  | {{ home_events_str }} | | {{ away_events_str }} |
+
+  {% endif -%}
+
+
+  {% else -%}
+
+  No match data available.
+
+  {% endif -%}
 ```
 
 ---
 
-### 2. Formatted Bundesliga Standings Table (HTML Table Card)
+### 2. Formatted Bundesliga Standings Table (Markdown Table Card)
 
-Uses a clean HTML `<table>` layout inside the Markdown Card, rendering **perfectly as a table in Home Assistant**:
+Uses a **Markdown Card**, rendering as a table in Home Assistant:
 
 ```yaml
 type: markdown
-title: "🏆 1. Bundesliga Standings"
-content: >
-  <table style="width: 100%; border-collapse: collapse; font-family: var(--primary-font-family, sans-serif); font-size: 12px;">
-    <thead>
-      <tr style="border-bottom: 2px solid rgba(255,255,255,0.2); text-align: left; opacity: 0.7; font-size: 10px; text-transform: uppercase;">
-        <th style="padding: 6px 4px; text-align: center;">#</th>
-        <th style="padding: 6px 4px;">Team</th>
-        <th style="padding: 6px 4px; text-align: center;">P</th>
-        <th style="padding: 6px 4px; text-align: center;">Goals</th>
-        <th style="padding: 6px 4px; text-align: center;">Diff</th>
-        <th style="padding: 6px 4px; text-align: center;">Pts</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in state_attr('sensor.openligadb_bl1_tabelle_2024', 'table') %}
-      <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <td style="padding: 6px 4px; text-align: center; font-weight: bold;">{{ row.rank }}</td>
-        <td style="padding: 6px 4px;">
-          <img src="{{ row.team_icon_url }}" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px; object-fit: contain;">
-          <span style="vertical-align: middle; font-weight: 600;">{{ row.short_name or row.team_name }}</span>
-        </td>
-        <td style="padding: 6px 4px; text-align: center;">{{ row.matches }}</td>
-        <td style="padding: 6px 4px; text-align: center;">{{ row.goals }}:{{ row.opponent_goals }}</td>
-        <td style="padding: 6px 4px; text-align: center;">{{ '+' if row.goal_diff > 0 else '' }}{{ row.goal_diff }}</td>
-        <td style="padding: 6px 4px; text-align: center; font-weight: 800; color: var(--primary-color, #03a9f4);">{{ row.points }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+title: ⚽ Matchday Card
+content: >-
+  | # | Team | P | Goals | Diff | Pts |
+
+  |:---:|:---|:---:|:---:|:---:|:---:|
+
+  {% for row in state_attr('sensor.openligadb_bl3_tabelle_2026', 'table') -%}
+
+  | {{ row.rank }} | <img src="{{ row.team_icon_url }}" width="16" height="16">
+  **{{ row.short_name or row.team_name }}** | {{ row.matches }} | {{ row.goals
+  }}:{{ row.opponent_goals }} | {{ '+' if row.goal_diff > 0 else '' }}{{
+  row.goal_diff }} | **{{ row.points }}** |
+
+  {% endfor %}
 ```
 
 ---
