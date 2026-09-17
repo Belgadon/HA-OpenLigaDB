@@ -251,18 +251,56 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if not isinstance(goals, list):
                     goals = []
 
-                goals_info = []
-                for g in goals:
-                    if isinstance(g, dict):
-                        goals_info.append(
-                            {
-                                "minute": g.get("matchMinute"),
-                                "player": g.get("goalGetterName") or "",
-                                "score": f"{g.get('scoreTeam1', 0)}:{g.get('scoreTeam2', 0)}",
-                                "is_penalty": bool(g.get("isPenalty")),
-                                "is_own_goal": bool(g.get("isOwnGoal")),
-                            }
-                        )
+                # Separate home & away goals
+                home_goals = []
+                away_goals = []
+                prev_s1 = 0
+                prev_s2 = 0
+
+                # Sort goals by minute / ID
+                valid_goals = [g for g in goals if isinstance(g, dict)]
+                sorted_goals = sorted(valid_goals, key=lambda g: g.get("matchMinute") or 0)
+
+                for g in sorted_goals:
+                    s1 = g.get("scoreTeam1") if g.get("scoreTeam1") is not None else prev_s1
+                    s2 = g.get("scoreTeam2") if g.get("scoreTeam2") is not None else prev_s2
+
+                    g_info = {
+                        "minute": g.get("matchMinute"),
+                        "player": g.get("goalGetterName") or "Unbekannt",
+                        "score": f"{s1}:{s2}",
+                        "is_penalty": bool(g.get("isPenalty")),
+                        "is_own_goal": bool(g.get("isOwnGoal")),
+                    }
+
+                    if s1 > prev_s1:
+                        home_goals.append(g_info)
+                        prev_s1 = s1
+                    elif s2 > prev_s2:
+                        away_goals.append(g_info)
+                        prev_s2 = s2
+                    else:
+                        # Fallback if score difference isn't clear
+                        home_goals.append(g_info)
+
+                # Process Cards (if provided by API)
+                cards = m.get("cards") or m.get("cardEvents") or []
+                if not isinstance(cards, list):
+                    cards = []
+
+                home_cards = []
+                away_cards = []
+                for c in cards:
+                    if isinstance(c, dict):
+                        c_info = {
+                            "minute": c.get("matchMinute"),
+                            "player": c.get("playerName") or c.get("player") or "Unbekannt",
+                            "card_type": c.get("cardType", "yellow").lower(),  # yellow, red, yellow_red
+                        }
+                        if c.get("teamId") == t1.get("teamId"):
+                            home_cards.append(c_info)
+                        else:
+                            away_cards.append(c_info)
 
                 stadium = location.get("locationStadium") or ""
                 city = location.get("locationCity") or ""
@@ -273,6 +311,10 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "date": m.get("matchDateTime"),
                     "group": group.get("groupName") or "",
                     "is_home": is_home,
+                    "home_team_name": t1_name,
+                    "home_team_icon": t1.get("teamIconUrl") or "",
+                    "away_team_name": t2_name,
+                    "away_team_icon": t2.get("teamIconUrl") or "",
                     "opponent_name": opponent.get("teamName") or "",
                     "opponent_short_name": opponent.get("shortName") or "",
                     "opponent_icon": opponent.get("teamIconUrl") or "",
@@ -283,7 +325,10 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "score_str": f"{score_t1} - {score_t2}" if (valid_results or is_finished or is_live) else "-:-",
                     "is_finished": is_finished,
                     "is_live": is_live,
-                    "goals": goals_info,
+                    "home_goals": home_goals,
+                    "away_goals": away_goals,
+                    "home_cards": home_cards,
+                    "away_cards": away_cards,
                     "location": loc_str,
                 }
 
@@ -303,10 +348,11 @@ class OpenLigaDBDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         )
 
                     # Check for new goals
-                    goals_count = len(goals_info)
+                    all_goals = home_goals + away_goals
+                    goals_count = len(all_goals)
                     prev_goals = self._previous_goals.get(match_id, 0)
-                    if goals_count > prev_goals and goals_info:
-                        latest_goal = goals_info[-1]
+                    if goals_count > prev_goals and all_goals:
+                        latest_goal = all_goals[-1]
                         self._previous_goals[match_id] = goals_count
                         self.hass.bus.async_fire(
                             EVENT_OPENLIGADB_GOAL,
