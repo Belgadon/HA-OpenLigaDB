@@ -54,8 +54,8 @@ class OpenLigaDBConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_ENTRY_TYPE, default=CONF_ENTRY_TYPE_TEAM): vol.In(
                     {
-                        CONF_ENTRY_TYPE_TEAM: "Team Sensor (Nächstes/Letztes Spiel, Status)",
-                        CONF_ENTRY_TYPE_LEAGUE: "Liga Sensor (Tabelle & Spieltag)",
+                        CONF_ENTRY_TYPE_TEAM: "Team Sensor (Next/Last Match, Status)",
+                        CONF_ENTRY_TYPE_LEAGUE: "League Sensor (Standings & Matchday)",
                     }
                 ),
             }
@@ -76,7 +76,7 @@ class OpenLigaDBConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(f"openligadb_league_{shortcut}_{season}")
             self._abort_if_unique_id_configured()
 
-            title = f"Liga: {shortcut.upper()} ({season})"
+            title = f"League: {shortcut.upper()} ({season})"
             return self.async_create_entry(
                 title=title,
                 data={
@@ -158,9 +158,10 @@ class OpenLigaDBConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     team_list = await resp.json()
                     if isinstance(team_list, list):
                         for t in team_list:
-                            name = t.get("teamName", "")
-                            if name:
-                                teams_dropdown[name] = name
+                            if isinstance(t, dict):
+                                name = t.get("teamName", "").strip()
+                                if name:
+                                    teams_dropdown[name] = name
         except Exception as err:
             _LOGGER.debug("Could not fetch team dropdown list: %s", err)
 

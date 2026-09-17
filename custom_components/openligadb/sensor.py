@@ -97,7 +97,7 @@ class OpenLigaDBTeamSensor(CoordinatorEntity[OpenLigaDBDataUpdateCoordinator], S
         if cur and cur.get("is_live"):
             return f"Live: {cur.get('score_str')}"
         if nxt:
-            opp = nxt.get("opponent_name", "Unbekannt")
+            opp = nxt.get("opponent_name", "Unknown")
             location_type = "vs" if nxt.get("is_home") else "@"
             return f"Upcoming ({location_type} {opp})"
         if lst:
@@ -156,7 +156,7 @@ class OpenLigaDBLeagueSensor(CoordinatorEntity[OpenLigaDBDataUpdateCoordinator],
     @property
     def name(self) -> str:
         """Return the friendly name of the sensor."""
-        return f"OpenLigaDB {self.league_shortcut.upper()} Tabelle {self.season}"
+        return f"OpenLigaDB {self.league_shortcut.upper()} Standings {self.season}"
 
     @property
     def native_value(self) -> str:
@@ -165,7 +165,7 @@ class OpenLigaDBLeagueSensor(CoordinatorEntity[OpenLigaDBDataUpdateCoordinator],
         group = l_data.get("current_group", {})
         if isinstance(group, dict) and group.get("groupName"):
             return group.get("groupName")
-        return f"Saison {self.season}"
+        return f"Season {self.season}"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
