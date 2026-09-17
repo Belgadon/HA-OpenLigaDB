@@ -60,6 +60,8 @@ A powerful Home Assistant Custom Integration for integrating match data, live sc
 
 ### 1. Match Card with Crests, Scores & Goal Scorers / Cards
 
+<img width="349" height="184" alt="Screenshot 2026-09-17 100612" src="https://github.com/user-attachments/assets/f3a83039-365b-4dc0-b424-5ec5c5ae9e4a" />
+
 Add a **Markdown Card** in your dashboard and paste this code:
 
 ```yaml
@@ -134,11 +136,13 @@ content: >-
 
 ### 2. Formatted Bundesliga Standings Table (Markdown Table Card)
 
+<img width="375" height="348" alt="image" src="https://github.com/user-attachments/assets/259dfe74-ab0e-440a-a32b-b0180f752081" />
+
 Uses a **Markdown Card**, rendering as a table in Home Assistant:
 
 ```yaml
 type: markdown
-title: ⚽ Matchday Card
+title: ⚽ Table Card
 content: >-
   | # | Team | P | Goals | Diff | Pts |
 
