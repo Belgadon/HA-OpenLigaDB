@@ -29,13 +29,28 @@ CONF_TEAM_NAME: Final = "team_name"
 CONF_LEAGUE_NAME: Final = "league_name"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
 
-# Predefined popular leagues
+# Predefined leagues (football leagues listed on https://www.openligadb.de/)
 PREDEFINED_LEAGUES: Final[dict[str, str]] = {
+    # Germany - men
     "bl1": "1. Bundesliga (bl1)",
     "bl2": "2. Bundesliga (bl2)",
     "bl3": "3. Liga (bl3)",
     "dfb": "DFB-Pokal (dfb)",
-    "bl1w": "1. Frauen-Bundesliga (bl1w)",
+    "rln": "Regionalliga Nord (rln)",
+    "rlno": "Regionalliga Nordost (rlno)",
+    "ol1": "Oberliga Niederrhein (OL1)",
+    # Germany - women
+    "ffb1": "Frauen-Bundesliga (ffb1)",
+    # National teams
+    "dfbn": "DFB Nationalspiele (DFBN)",
+    "nla": "UEFA Nations League A (nla)",
+    # European club competitions
+    "ucl": "UEFA Champions League (ucl)",
+    "uel2026": "UEFA Europa League 2026/27 (uel2026)",
+    "uecl2026": "UEFA Conference League 2026/27 (uecl2026)",
+    # International leagues
+    "pl": "Premier League ENG (pl)",
+    "la1": "LaLiga ESP (la1)",
     "atbl1": "Admiral Bundesliga AT (atbl1)",
     "chsl": "Super League CH (chsl)",
 }
